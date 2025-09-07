@@ -7,7 +7,7 @@ Over time hopefully it will be a place to find all components in one place, inst
 
 I intend to include engine hacking eventually so common modifications(like highlighting personal skills) are added, but it is not the focus.
 
-This is a plublic repo and everyone can make a request to add a component, just do it by github or send to zeonBPM#1222 over discord
+This is a plublic repo and everyone can make a request to add a component, just do it via github or send to zeonBPM#1222 over discord
 
 
 
