@@ -4,6 +4,8 @@
 
 # Aesthetic
 
+Support Icons	Adds support rank display in the map(over each unit) similar to Awakening and Fates
+
 # Attribute
 
 # Base
