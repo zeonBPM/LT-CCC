@@ -1,94 +1,92 @@
 # We are using the engine's classification until a better system is deviced
 
 # Advanced
-```
 
-```
+
 # Aesthetic
-```
-**Support Icons**	
+
+### Support Icons
 Support rank appears above allies's heads
 
-```
-# Attribute
-```
 
-```
+# Attribute
+
+
+
 # Base
-```
-**CannotUseCondition**	
+
+### CannotUseCondition
 Unit cannot use or equip items unless the condition is true.
-**CannotUseTaggedItems**	
+### CannotUseTaggedItems	
 Unit cannot use items with the given tags
 
-```
 # Charge
-```
 
-```
+
+
 # Combat
-```
-**DynamicResistMultiplier**	
+
+### DynamicResistMultiplier
 Multiplies damage taken by a fraction
-**GrowthMultiplier**	
+### GrowthMultiplier
 Multiplies stat growths on level up by the specified amount
 
-```
+
 # Combat2
-```
-**Dispersion**	
+
+### Dispersion*
 Shares damage taken with units satisfying the specified condition
-**EventAfterTakeDamage**	
+### EventAfterTakeDamage
 Run an event after combat if damaged
-**EventAfterTakeHit**	
+### EventAfterTakeHit
 Run an event after combat if hit
-**GainMultiSkillAfterCombat**	
+### GainMultiSkillAfterCombat
 Gives all listed skills to user after any combat
-**GiveSkillAfterGainStatus**	
+### GiveSkillAfterGainStatus
 Give a skill to the attacker after gaining a status
-**IgnoreDamage_mod**	
+### IgnoreDamage_mod
 Unit will ignore all damage and not display damage number
-**LoseSkillAfterTakeMiss**	
+### LoseSkillAfterTakeMiss
 Lose X stacks of a skill immediately after an enemy misses you
-**LoseStatusAfterTakeDamage**	
+### LoseStatusAfterTakeDamage
 If unit is damaged, they lose the given number of charges of the specified status
-**RemoveSkillAfterActivate**	
+### RemoveSkillAfterActivate
 Lose the specified skill after combat ends
-**SpikeDamage**	
+### SpikeDamage
 Attackers take a specified amount of damage per hit.  Cannot be fatal
 
-```
+
 # Dynamic
-```
 
-```
+
+
 # Extra
-```
 
-```
+
+
 # Formula
-```
 
-```
+
+
 # Movement
-```
-**Corrosion**	
+
+### Corrosion
 Unit loses % of HP at beginning of turn
 
-```
+
 # Status
-```
-**NegateNewStatus**	
+
+### NegateNewStatus
 Unit does not receive status effects
 
-```
-# Time
-```
 
-```
+# Time
+
+
+
 # Custom
-```
-**AstraAlt**	
+
+### AstraAlt
 Modified astra
 
-```
+
