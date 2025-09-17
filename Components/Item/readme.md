@@ -4,9 +4,16 @@
 # Advanced
 
 # Aesthetic
+### Map Blast SFX
+Plays sound a single time per combat
 
 # AOE
-
+### Directer Shape AOE
+Affects an area around the target according to the specified shape.  Will rotate based on target location.
+### Rally AOE
+Gives Blast AOE that affects allies but not the user
+### Status Stacks On Hit
+Target gains X stacks of the specified status on hit. Applies instantly, potentially causing values to change mid-combat
 # Base
 
 # Class_Change
@@ -18,8 +25,11 @@
 # Formula
 
 # Special
-
+### Rescue Unit
+Rescues the target on hit
 # Target
+### Adjacent Empty Restrict
+Prevents units from using this item if no adjacent squares are open
 
 # Uses
 
@@ -28,10 +38,19 @@
 Heal the target based on an evaluation
 ### EvalHealandRestore		
 Heal the target based on an evaluation, and restores all negative statuses
+### Spawn Region
+Creates a region at the specified tile on hit
+### Warp AI
+Creates an AI usable warp staff
+
+
 # Weapon
 ### WeaponTypes		
 Allows an item to have more than one weapon type
-
+### Backfire Damage
+Deals a certain amount of damage to the user.  Cannot be lethal
+### Instakill
+Item instantly kills the target with a specified probability
 # Custom
 
 ### WeaponTypeExempt
