@@ -1,4 +1,4 @@
-# We are using the engine's classification until a better system is deviced
+# We are using the engine's classification until a better system is devised
 
 # Advanced
 
