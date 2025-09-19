@@ -34,7 +34,7 @@ Multiplies stat growths on level up by the specified amount
 
 # Combat2
 
-### Dispersion*
+### Dispersion
 Shares damage taken with units satisfying the specified condition
 ### EventAfterTakeDamage
 Run an event after combat if damaged
