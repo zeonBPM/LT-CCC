@@ -15,9 +15,9 @@ Support rank appears above allies's heads
 
 # Base
 
-### CannotUseCondition
+### Cannot Use Condition
 Unit cannot use or equip items unless the condition is true.
-### CannotUseTaggedItems	
+### Cannot Use Tagged Items	
 Unit cannot use items with the given tags
 
 # Charge
@@ -28,9 +28,9 @@ Charges this skill after a kill
 
 # Combat
 
-### DynamicResistMultiplier
+### Dynamic Resist Multiplier
 Multiplies damage taken by a fraction
-### GrowthMultiplier
+### Growth Multiplier
 Multiplies stat growths on level up by the specified amount
 
 
@@ -38,23 +38,23 @@ Multiplies stat growths on level up by the specified amount
 
 ### Dispersion
 Shares damage taken with units satisfying the specified condition
-### EventAfterTakeDamage
+### Event After Take Damage
 Run an event after combat if damaged
-### EventAfterTakeHit
+### Event After Take Hit
 Run an event after combat if hit
-### GainMultiSkillAfterCombat
+### Gain Multi Skill After Combat
 Gives all listed skills to user after any combat
-### GiveSkillAfterGainStatus
+### Give Skill After Gain Status
 Give a skill to the attacker after gaining a status
-### IgnoreDamage_mod
+### Ignore Damage mod
 Unit will ignore all damage and not display damage number
-### LoseSkillAfterTakeMiss
+### Lose Skill After Take Miss
 Lose X stacks of a skill immediately after an enemy misses you
-### LoseStatusAfterTakeDamage
+### Lose Status After Take Damage
 If unit is damaged, they lose the given number of charges of the specified status
-### RemoveSkillAfterActivate
+### Remov eSkill Afte rActivate
 Lose the specified skill after combat ends
-### SpikeDamage
+### Spik eDamage
 Attackers take a specified amount of damage per hit.  Cannot be fatal
 ### Eval Heal On Hit
 Heals user eval'd value on hit; exposes unit, item, skill, hits
@@ -85,7 +85,7 @@ Unit loses % of HP at beginning of turn
 
 # Status
 
-### NegateNewStatus
+### Negate New Status
 Unit does not receive status effects
 ### GBA Poison Non Lethal
 Unit takes random amount of damage up to num.  Cannot drop below 1 HP.
@@ -96,7 +96,7 @@ Unit takes random amount of damage up to num.  Cannot drop below 1 HP.
 
 # Custom
 
-### AstraAlt
+### Astra Alt
 Modified astra
 
 
