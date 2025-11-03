@@ -30,6 +30,8 @@ Rescues the target on hit
 # Target
 ### Adjacent Empty Restrict
 Prevents units from using this item if no adjacent squares are open
+### Eval Target Only Restrict
+Restricts which units or spaces can be targeted, but only calls once per target tile.
 
 # Uses
 

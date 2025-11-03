@@ -1,8 +1,8 @@
 # We are using the engine's classification until a better system is devised
 
 # Advanced
-
-
+### Event After Combat
+Calls event after combat (I agree, this should be default)
 # Aesthetic
 
 ### Support Icons
@@ -21,8 +21,10 @@ Unit cannot use or equip items unless the condition is true.
 Unit cannot use items with the given tags
 
 # Charge
-
-
+### Build Charge Active
+Skill starts each chapter with 0 charges, and builds up to the specified maximum.
+### Charge After Kill
+Charges this skill after a kill
 
 # Combat
 
@@ -54,7 +56,12 @@ If unit is damaged, they lose the given number of charges of the specified statu
 Lose the specified skill after combat ends
 ### SpikeDamage
 Attackers take a specified amount of damage per hit.  Cannot be fatal
-
+### Eval Heal On Hit
+Heals user eval'd value on hit; exposes unit, item, skill, hits
+### Give Status After Combat On Hit For Real
+Gives a status to target after combat, assuming you hit the target, even if you didn't initiate.
+### Set Charge After Take Damage
+Set charge value on this skill immediately after an enemy damages you.
 
 # Dynamic
 
@@ -69,6 +76,8 @@ Attackers take a specified amount of damage per hit.  Cannot be fatal
 
 
 # Movement
+### Canto++
+Unit can use its full movement again, even after attacking
 
 ### Corrosion
 Unit loses % of HP at beginning of turn
@@ -78,7 +87,8 @@ Unit loses % of HP at beginning of turn
 
 ### NegateNewStatus
 Unit does not receive status effects
-
+### GBA Poison Non Lethal
+Unit takes random amount of damage up to num.  Cannot drop below 1 HP.
 
 # Time
 

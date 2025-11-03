@@ -1,3 +1,5 @@
+
+
 class GBAPoisonNonLethal(SkillComponent):
     nid = 'gba_poison_non_lethal'
     desc = "Unit takes random amount of damage up to num.  Cannot drop below 1 HP."
