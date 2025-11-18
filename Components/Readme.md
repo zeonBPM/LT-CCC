@@ -13,9 +13,9 @@ Try to have a detailed description of what the component does, assuming the name
 
 
 
-If for some reason i forgot to add the dependencies, this are ALL the ones in the repo
+ If for some reason i forgot to add the dependencies, this are ALL the ones in the repo
 
-
+```
 from __future__ import annotations
 
 import random
@@ -40,4 +40,6 @@ from app.data.database.item_components import ItemComponent, ItemTags
 from app.extensions.shape_dialog import rotate
 
 from app.utilities import (utils, static_random)
+
+```
 

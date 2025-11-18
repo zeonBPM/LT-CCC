@@ -36,9 +36,9 @@ Restricts which units or spaces can be targeted, but only calls once per target 
 # Uses
 
 # Utility
-### EvalHeal				
+### Eval Heal				
 Heal the target based on an evaluation
-### EvalHealandRestore		
+### Eval Heal and Restore		
 Heal the target based on an evaluation, and restores all negative statuses
 ### Spawn Region
 Creates a region at the specified tile on hit
@@ -47,7 +47,7 @@ Creates an AI usable warp staff
 
 
 # Weapon
-### WeaponTypes		
+### Weapon TypeS		
 Allows an item to have more than one weapon type
 ### Backfire Damage
 Deals a certain amount of damage to the user.  Cannot be lethal
@@ -55,5 +55,5 @@ Deals a certain amount of damage to the user.  Cannot be lethal
 Item instantly kills the target with a specified probability
 # Custom
 
-### WeaponTypeExempt
+### Weapon Type Exempt
 Categorizes a weapon type but does not require the wielder to be able to use that weapon type
