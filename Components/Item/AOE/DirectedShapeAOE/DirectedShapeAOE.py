@@ -39,7 +39,7 @@ class DirectedShapeAOE(ShapeBlastAOE):
         return value_list
     
     def splash(self, unit, item, position) -> tuple:
-        rng = self._get_power(unit, item)
+        rng = self._get_power(unit)
         splash = self._get_shape(position, unit.position, rng)
         splash = {pos for pos in splash if game.tilemap.check_bounds(pos)}
         if self.value['target'] == 'all':
@@ -67,7 +67,7 @@ class DirectedShapeAOE(ShapeBlastAOE):
             return position if game.board.get_unit(position) else None, splash
 
     def splash_positions(self, unit, item, position) -> set:
-        rng = self._get_power(unit, item)
+        rng = self._get_power(unit)
         splash = self._get_shape(position, unit.position, rng)
         splash = {pos for pos in splash if game.tilemap.check_bounds(pos)}
         return splash
