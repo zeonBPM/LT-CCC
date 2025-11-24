@@ -16,6 +16,7 @@ Try to have a detailed description of what the component does, assuming the name
  If for some reason i forgot to add the dependencies, this are ALL the ones in the repo
 
 ```
+
 from __future__ import annotations
 
 import random

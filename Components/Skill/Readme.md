@@ -62,6 +62,9 @@ Heals user eval'd value on hit; exposes unit, item, skill, hits
 Gives a status to target after combat, assuming you hit the target, even if you didn't initiate.
 ### Set Charge After Take Damage
 Set charge value on this skill immediately after an enemy damages you.
+### Gain Skill After Miss
+Gives a status to the holder when they miss a single strike(can happen multiple times).
+
 
 # Dynamic
 
