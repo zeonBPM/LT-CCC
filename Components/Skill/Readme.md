@@ -52,9 +52,9 @@ Unit will ignore all damage and not display damage number
 Lose X stacks of a skill immediately after an enemy misses you
 ### Lose Status After Take Damage
 If unit is damaged, they lose the given number of charges of the specified status
-### Remov eSkill Afte rActivate
+### Remove Skill After Activate
 Lose the specified skill after combat ends
-### Spik eDamage
+### Spike Damage
 Attackers take a specified amount of damage per hit.  Cannot be fatal
 ### Eval Heal On Hit
 Heals user eval'd value on hit; exposes unit, item, skill, hits
