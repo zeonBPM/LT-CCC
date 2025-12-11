@@ -22,7 +22,7 @@ class SpikeDamage(SkillComponent):
             logging.error("Couldn't evaluate spike_damage expression" % self.value)
         damage = -utils.clamp(spike_damage, 0, target.get_hp())
         if damage < 0:
-            playback.append(pb.DamageHit(unit, item, target, spike_damage, damage))
+            playback.append(pb.DamageHit(unit, item2, target, spike_damage, damage))
 
         actions.append(action.ChangeHP(target, damage))
         actions.append(action.TriggerCharge(unit, self.skill))
