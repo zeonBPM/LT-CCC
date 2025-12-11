@@ -5,6 +5,8 @@
 #I use the random module rather than LT's built in random functions, so this component's behavior will not be preserved by turnwheel.  Change the defintion
 #of r if you want to adjust this.
 
+#Please contact Squid1003 on the LT discord with any bug reports.
+
 import random
 from app.engine.movement import movement_funcs
 

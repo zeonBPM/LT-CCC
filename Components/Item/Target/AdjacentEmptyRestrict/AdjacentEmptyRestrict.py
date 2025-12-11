@@ -1,4 +1,5 @@
 #Prevents an item from being used if there are no open tiles adjacent to the user.  Useful for things like the rescue staff.
+#Please contact Squid1003 on the LT discord with any bug reports.
 
 from app.engine.movement import movement_funcs
 

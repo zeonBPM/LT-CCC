@@ -1,5 +1,8 @@
 #Two related components which allow adding mulitple stacks of a status when using an item.
 #Note SelfStatusStacksOnHit is a subclass of StatusStacksOnHit, so it cannot be used unless you also have StatusStacksOnHit in your custom components file.
+#Please contact Squid1003 on the LT discord with any bug reports.
+
+from app.engine.item_components.hit_components import ai_status_priority
 
 class StatusStacksOnHit(ItemComponent):
     nid = 'status_stacks_on_hit'

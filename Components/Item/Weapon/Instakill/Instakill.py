@@ -3,6 +3,9 @@
 #of r if you want to adjust this.
 
 #Known 'bug': it takes a long time for the target's HP to drain if the target has a large HP pool (eg in the hundreds)
+
+#Please contact Squid1003 on the LT discord with any bug reports.
+
 import random
 
 class Instakill(ItemComponent):

@@ -2,7 +2,10 @@
 #Use with the included target restrict component is recommended.  I did not handle nid assignment very well in this component, so spawning the same 
 #type of region twice in the same locaiton can cause errors.  This could probably be fixed by adjusting the nid assignment in line 63.
 
+#Please contact Squid1003 on the LT discord with any bug reports.
+
 from app.engine.objects.region import RegionObject
+from app.events import regions
 
 def create_region(region_nid,position,r_type,sub_type=None,size=(1,1),time=None,actions=None,condition='True'):
     if region_nid in game.level.regions:

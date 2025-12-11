@@ -1,4 +1,5 @@
 #Pretty much does what it says.  Can be used to make enemies rescue units, among other things.
+#Please contact Squid1003 on the LT discord with any bug reports.
 
 class RescueUnit(ItemComponent):
     nid = 'rescue_unit'

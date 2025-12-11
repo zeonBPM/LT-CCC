@@ -1,4 +1,5 @@
 #Minor edit to ally blast aoe which prevents the user from being included.  Primarily for rally skills.
+#Please contact Squid1003 on the LT discord with any bug reports.
 
 class RallyAOE(ItemComponent):
     nid = 'rally_blast_aoe'
