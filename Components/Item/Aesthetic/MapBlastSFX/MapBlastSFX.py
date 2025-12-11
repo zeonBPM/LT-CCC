@@ -1,4 +1,5 @@
 #Prevents splash items from playing the item's sound effect multiple times.
+#Please contact Squid1003 on the LT discord with any bug reports.
 
 class MapBlastSFX(ItemComponent):
     nid = 'blast_hit_sfx'
