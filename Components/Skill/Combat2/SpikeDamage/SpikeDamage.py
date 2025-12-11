@@ -1,5 +1,7 @@
 #Allows you to enter a python expression which should evaluate to an integer.  When the skill holder is attacked, the attacker takes the evaluated damage amount.
-#Damage is available as a local arg if you want spike damage to be related to the amount of damage taken.
+#"damage" is available as a local arg if you want spike damage to be related to the amount of damage taken.
+
+#Please contact Squid1003 on the LT discord with any bug reports.
 class SpikeDamage(SkillComponent):
     nid = 'spike'
     desc = "Attackers take a specified amount of damage per hit.  Cannot be fatal."
@@ -22,7 +24,7 @@ class SpikeDamage(SkillComponent):
             logging.error("Couldn't evaluate spike_damage expression" % self.value)
         damage = -utils.clamp(spike_damage, 0, target.get_hp())
         if damage < 0:
-            playback.append(pb.DamageHit(unit, item, target, spike_damage, damage))
+            playback.append(pb.DamageHit(unit, item2, target, spike_damage, damage))
 
         actions.append(action.ChangeHP(target, damage))
         actions.append(action.TriggerCharge(unit, self.skill))
