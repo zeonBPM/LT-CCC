@@ -1,8 +1,16 @@
 #Component which allows for an item affect a user defined AOE, rotated to face in a particular direction.  Example of how to set this up is included.
 #I recommend you do not use the 'all' option for target whatsoever.  It will most likely not work the way you want.
+#Please contact Squid1003 on the LT discord with any bug reports.
 
 from app.engine.item_components.aoe_components import ShapeBlastAOE
-from app.extensions.shape_dialog import rotate
+import math
+
+def rotate(coords:list[list], theta:int):
+    #Rotate by theta = k*pi/2 radians counterclockwise for k an integer.
+    cos = int(math.cos(theta)) 
+    sin = int(math.sin(theta))
+    new_coords = [[coord[0] * cos + coord[1] * sin, coord[1] * cos-coord[0] * sin] for coord in coords]
+    return new_coords
 
 class DirectedShapeAOE(ShapeBlastAOE):
     nid = 'directed_shape_aoe'
