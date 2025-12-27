@@ -43,5 +43,10 @@ from app.extensions.shape_dialog import rotate
 
 from app.utilities import (utils, static_random)
 
+from app.engine.item_components.exp_components import (determine_all_defenders, 
+                                                       determine_all_damaged_defenders,
+                                                       determine_all_healed_defenders, 
+                                                       modify_exp)
+
 ```
 

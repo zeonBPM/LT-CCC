@@ -1,9 +1,6 @@
 #This makes weapon type into a list with multipple items, so that the item can be used by classes with different weapons allowed.
 #My main idea was to use it with magic, but the best example would be having a halberd count both as an Axe and Lance(whichever is first if the unit can use both)
 
-
-
-
 #should have the same dependencies as the normal WeaponType, so it will work by default.
 
 class WeaponTypes(ItemComponent):
