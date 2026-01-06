@@ -81,6 +81,8 @@ Gives a status to the holder when they miss a single strike(can happen multiple 
 # Movement
 ### Canto++
 Unit can use its full movement again, even after attacking
+### Dynamic Canter
+Unit moves a number of spaces after taking any action calculated dynamically
 
 ### Corrosion
 Unit loses % of HP at beginning of turn
@@ -101,5 +103,8 @@ Unit takes random amount of damage up to num.  Cannot drop below 1 HP.
 
 ### Astra Alt
 Modified astra
+
+### Rally on Action
+Inflicts the given status to allies within the given number of spaces from user
 
 

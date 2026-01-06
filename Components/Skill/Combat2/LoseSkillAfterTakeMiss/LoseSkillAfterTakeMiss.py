@@ -1,3 +1,6 @@
+from app.utilities.enums import Strike
+
+
 #Allows you to remove a skill from the user after they dodge an attack.
 class LoseSkillAfterTakeMiss(SkillComponent):
     nid = 'lose_skill_after_take_miss'

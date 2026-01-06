@@ -37,11 +37,14 @@ from app.engine.combat import playback as pb
 from app.engine.item_components.aoe_components import ShapeBlastAOE
 from app.engine.movement import movement_funcs
 
+
+
 from app.data.database.item_components import ItemComponent, ItemTags
 
 from app.extensions.shape_dialog import rotate
 
 from app.utilities import (utils, static_random)
+from app.utilities.enums import Strike
 
 from app.engine.item_components.exp_components import (determine_all_defenders, 
                                                        determine_all_damaged_defenders,
