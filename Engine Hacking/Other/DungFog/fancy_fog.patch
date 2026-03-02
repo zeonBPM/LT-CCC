@@ -1,0 +1,266 @@
+diff --git a/app/engine/boundary.py b/app/engine/boundary.py
+index 4a87055a..5948e18f 100644
+--- a/app/engine/boundary.py
++++ b/app/engine/boundary.py
+@@ -8,6 +8,8 @@ from app.engine.sprites import SPRITES
+ from app.engine import engine, equations, image_mods, aura_funcs, line_of_sight
+ from app.engine.game_state import game
+ 
++from app.events.regions import RegionType
++
+ from app.utilities import utils
+ 
+ class BoundaryInterface():
+@@ -351,6 +353,64 @@ class BoundaryInterface():
+             surf.blit(im, (0, 0))
+         return surf
+ 
++    subtile = (TILEWIDTH // 4, TILEHEIGHT // 4)
++    vision_surfs = dict()
++
++    def create_vision_surf(self, vision_radius):
++        surf_size = utils.tmult(self.subtile, vision_radius * 2)
++        vision_surf = engine.create_surface(surf_size, transparent=True)
++        for x, y in utils.itergrid(surf_size[0], surf_size[1]):
++            distance = int(utils.distance(tuple(map(lambda a, b: a // b + 0.5, (x,y), self.subtile)), ([vision_radius] * 2)))
++            if distance <= vision_radius:
++                r = distance/vision_radius
++                alpha = (r**2 * (r*2 - 3) + 1) * 255
++                vision_surf.set_at((x, y), (0, 0, 0, alpha))
++        return vision_surf
++
++    def add_light_gradient(self, surf, rng, pos, flicker=False):
++        radius = rng * 4 + 6
++        if flicker and (engine.get_time() // 800) % 2:
++            radius += 1
++        if self.vision_surfs.get(radius) is None:
++            self.vision_surfs[radius] = self.create_vision_surf(radius)
++        vision_surf = self.vision_surfs.get(radius)
++        surf.blit(vision_surf,
++                  utils.tuple_sub(pos, utils.tmult(self.subtile, radius)),
++                  special_flags=engine.BLEND_RGBA_SUB)
++        return surf
++
++    def draw_fancy_fog_of_war(self, surf, thracia_mode, full_size, cull_rect):
++        fog_of_war_surf = engine.create_surface(full_size, transparent=True)
++        fog_of_war_surf.fill((0, 0, 0, 255 if thracia_mode else 200))
++                
++        fog_of_war_radius = game.get_current_fog_info().default_radius
++
++        for unit in game.get_player_units():
++            self.add_light_gradient(fog_of_war_surf,
++                                    fog_of_war_radius, 
++                                    utils.tuple_mul(utils.tuple_add(unit.sprite.position, (0.5, 0.5)), (TILEWIDTH, TILEHEIGHT)))
++
++        from app.engine import config as cf
++        if cf.SETTINGS["mouse"]:
++            from app.engine.input_manager import get_input_manager
++            pos = get_input_manager().get_real_mouse_position()
++            if pos:
++                self.add_light_gradient(fog_of_war_surf,
++                                        fog_of_war_radius, 
++                                        utils.tuple_add(pos, cull_rect[:2]))
++
++        for region in game.level.regions:
++            if region.region_type == RegionType.VISION:
++                vision_radius = int(region.sub_nid) if region.sub_nid else 1
++                self.add_light_gradient(fog_of_war_surf,
++                                        vision_radius, 
++                                        utils.tuple_mul(utils.tuple_add(region.position, (0.5, 0.5)), (TILEWIDTH, TILEHEIGHT)),
++                                        flicker=True)
++            
++        im = engine.subsurface(fog_of_war_surf, cull_rect)
++        surf.blit(im, (0, 0))
++        return surf
++
+     def print_grid(self, mode):
+         for y in range(self.height):
+             print("%02d|" % y, end="")
+diff --git a/app/engine/fog_of_war.py b/app/engine/fog_of_war.py
+index 6a8b4b26..97e7c474 100644
+--- a/app/engine/fog_of_war.py
++++ b/app/engine/fog_of_war.py
+@@ -8,6 +8,8 @@ class FogOfWarType(Enum):
+     GBA = 1
+     THRACIA = 2
+     HYBRID = 3
++    FANCY = 4
++    FANCY_THRACIA = 5
+ 
+ @dataclass
+ class FogOfWarLevelConfig:
+diff --git a/app/engine/game_board.py b/app/engine/game_board.py
+index 4f0b912d..3d22c792 100644
+--- a/app/engine/game_board.py
++++ b/app/engine/game_board.py
+@@ -170,6 +170,30 @@ class GameBoard(object):
+         return False
+ 
+     # === Fog of War ===
++    def find_euclidean_spheres(self, rng, x, y):
++        if not rng:
++            return set()
++        points = set()
++        r = max(rng) + 0.5
++        for dx in rng:
++            if dx == 0:
++                for dy in rng:
++                    if dy == 0:
++                        points.add((x, y))
++                    else:
++                        points.update({(x, y + dy),
++                                       (x, y - dy)})
++                continue              
++            points.update({(x + dx, y),
++                           (x - dx, y)})       
++            max_dy = int((r*r - dx*dx)**0.5)
++            for dy in range(1, max_dy+1):
++                points.update({(x + dx, y + dy),
++                               (x + dx, y - dy),
++                               (x - dx, y + dy),
++                               (x - dx, y - dy)})                      
++        return points
++
+     def update_fow(self, pos: Optional[Pos], unit: UnitObject, sight_range: int):
+         """Modifies the state of the fog of war game board to reflect the unit moving to the pos"""
+         grid: Grid[List[UnitObject]] = self.fog_of_war_grids[unit.team]
+@@ -180,7 +204,12 @@ class GameBoard(object):
+         # Add new vision
+         if pos:
+             self.fow_vantage_point[unit.nid] = pos
+-            positions = game.target_system.find_manhattan_spheres(range(sight_range + 1), *pos)
++
++            find_spheres = self.find_euclidean_spheres
++            if game.get_current_fog_info().mode in (FogOfWarType.FANCY, FogOfWarType.FANCY_THRACIA):
++                find_spheres = game.target_system.find_manhattan_spheres
++            positions = find_spheres(range(sight_range + 1), *pos)
++
+             positions = {pos for pos in positions if 0 <= pos[0] < self.width and 0 <= pos[1] < self.height}
+             for position in positions:
+                 grid.get(position).add(unit.nid)
+@@ -221,8 +250,13 @@ class GameBoard(object):
+             self.fog_region_set.add(region.nid)
+             fog_range = int(region.sub_nid) if region.sub_nid else 0
+             positions = set()
++
++            find_spheres = self.find_euclidean_spheres
++            if game.get_current_fog_info().mode in (FogOfWarType.FANCY, FogOfWarType.FANCY_THRACIA):
++                find_spheres = game.target_system.find_manhattan_spheres
++
+             for pos in region.get_all_positions():
+-                positions |= game.target_system.find_manhattan_spheres(range(fog_range + 1), pos[0], pos[1])
++                positions |= find_spheres(range(fog_range + 1), pos[0], pos[1])
+             positions = {pos for pos in positions if 0 <= pos[0] < self.width and 0 <= pos[1] < self.height}
+             for position in positions:
+                 self.fog_regions.get(position).add(region.nid)
+@@ -236,8 +270,13 @@ class GameBoard(object):
+         if region.position:
+             vision_range = int(region.sub_nid) if region.sub_nid else 0
+             positions = set()
++
++            find_spheres = self.find_euclidean_spheres
++            if game.get_current_fog_info().mode in (FogOfWarType.FANCY, FogOfWarType.FANCY_THRACIA):
++                find_spheres = game.target_system.find_manhattan_spheres
++
+             for pos in region.get_all_positions():
+-                positions |= game.target_system.find_manhattan_spheres(range(vision_range + 1), pos[0], pos[1])
++                positions |= find_spheres(range(vision_range + 1), pos[0], pos[1])
+             positions = {pos for pos in positions if 0 <= pos[0] < self.width and 0 <= pos[1] < self.height}
+             for position in positions:
+                 self.vision_regions.get(position).add(region.nid)
+diff --git a/app/engine/map_view.py b/app/engine/map_view.py
+index 0c745291..c1772c0b 100644
+--- a/app/engine/map_view.py
++++ b/app/engine/map_view.py
+@@ -5,6 +5,7 @@ from app.events.regions import RegionType
+ 
+ from app.engine import config as cf
+ from app.engine import engine
++from app.engine.fog_of_war import FogOfWarType
+ from app.engine.fonts import FONT
+ from app.engine.game_state import game
+ 
+@@ -65,7 +66,9 @@ class MapView():
+         culled_units = [unit for unit in pos_units if unit.sprite.draw_anyway() or
+                         (cull_rect[0] - TILEWIDTH*2 < unit.sprite.position[0] * TILEWIDTH < cull_rect[0] + cull_rect[2] + TILEWIDTH*2 and
+                          cull_rect[1] - TILEHEIGHT*2 < unit.sprite.position[1] * TILEHEIGHT < cull_rect[1] + cull_rect[3] + TILEHEIGHT*2)]
+-        culled_units = [unit for unit in culled_units if game.board.in_vision(unit.sprite.get_round_fake_pos() or unit.position)]
++        fog_info = game.get_current_fog_info()
++        if fog_info.is_active and fog_info.mode != FogOfWarType.FANCY_THRACIA:
++            culled_units = [unit for unit in culled_units if game.board.in_vision(unit.sprite.get_round_fake_pos() or unit.position)]
+         draw_units = sorted(culled_units, key=lambda unit: unit.sprite.position[1])
+ 
+         topleft = cull_rect[0], cull_rect[1]
+@@ -135,7 +138,10 @@ class MapView():
+ 
+         surf = game.boundary.draw_auras(surf, full_size, cull_rect)
+         surf = game.boundary.draw(surf, full_size, cull_rect)
+-        surf = game.boundary.draw_fog_of_war(surf, full_size, cull_rect)
++
++        fog_info = game.get_current_fog_info()
++        if fog_info.mode not in (FogOfWarType.FANCY, FogOfWarType.FANCY_THRACIA):
++            surf = game.boundary.draw_fog_of_war(surf, full_size, cull_rect)
+         surf = game.highlight.draw(surf, cull_rect)
+ 
+         self.draw_grid(surf, cull_rect)
+@@ -155,6 +161,9 @@ class MapView():
+         else:
+             self.draw_units(surf, cull_rect)
+ 
++        if fog_info.is_active and fog_info.mode in (FogOfWarType.FANCY, FogOfWarType.FANCY_THRACIA) :
++            surf = game.boundary.draw_fancy_fog_of_war(surf, fog_info.mode == FogOfWarType.FANCY_THRACIA, full_size, cull_rect)
++
+         game.tilemap.high_animations = [anim for anim in game.tilemap.high_animations if not anim.update()]
+         for anim in game.tilemap.high_animations:
+             anim.draw(surf, offset=(-game.camera.get_x(), -game.camera.get_y()))
+diff --git a/app/events/event_functions.py b/app/events/event_functions.py
+index eb25f6f0..bc53d21a 100644
+--- a/app/events/event_functions.py
++++ b/app/events/event_functions.py
+@@ -641,6 +641,10 @@ def set_fog_of_war(self: Event, fog_of_war_type: str, radius: int, ai_radius: Op
+         fowt = FogOfWarType.THRACIA
+     elif fowt == 'hybrid':
+         fowt = FogOfWarType.HYBRID
++    elif fowt == 'fancy':
++        fowt = FogOfWarType.FANCY
++    elif fowt == 'fancy_thracia':
++        fowt = FogOfWarType.FANCY_THRACIA
+     else:
+         fowt = FogOfWarType.GBA_DEPRECATED
+     action.do(action.SetLevelVar('_fog_of_war_type', fowt))
+diff --git a/app/events/event_validators.py b/app/events/event_validators.py
+index cea1ed39..59d1b010 100644
+--- a/app/events/event_validators.py
++++ b/app/events/event_validators.py
+@@ -699,7 +699,7 @@ class Chapter(Validator):
+         return valids
+ 
+ class FogOfWarType(OptionValidator):
+-    valid = ['gba', 'thracia', 'hybrid']
++    valid = ['gba', 'thracia', 'hybrid', 'fancy', 'fancy_thracia']
+ 
+ class ShakeType(OptionValidator):
+     valid = ['default', 'combat', 'kill', 'random', 'celeste']
+diff --git a/app/utilities/utils.py b/app/utilities/utils.py
+index bd785e0d..3132fb5e 100644
+--- a/app/utilities/utils.py
++++ b/app/utilities/utils.py
+@@ -6,7 +6,7 @@ import itertools
+ import math
+ import sys
+ from collections import Counter
+-from operator import add, sub
++from operator import add, sub, mul
+ from typing import Collection, Iterable, List, Optional, Tuple
+ 
+ from app.utilities.typing import Point, Pos
+@@ -106,6 +106,9 @@ def tuple_add(a: tuple, *b: tuple) -> tuple:
+         accum = tuple(map(add, accum, next_tup))
+     return accum
+ 
++def tuple_mul(a: tuple, b: tuple) -> tuple:
++    return tuple(map(mul, a, b))
++
+ def magnitude(a: tuple) -> float:
+     return math.sqrt(a[0] * a[0] + a[1] * a[1])
+ 
