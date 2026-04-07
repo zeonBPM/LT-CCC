@@ -41,7 +41,6 @@ from app.engine.movement import movement_funcs
 
 from app.data.database.item_components import ItemComponent, ItemTags
 
-from app.extensions.shape_dialog import rotate
 
 from app.utilities import (utils, static_random)
 from app.utilities.enums import Strike
