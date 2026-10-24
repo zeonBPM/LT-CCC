@@ -3,7 +3,10 @@
 
 #It has some issue with the convoy that im not aware how to fix at the moment, mainly related to hidden types
 
-#should have the same dependencies as the normal WeaponType, so it will work by default.
+
+
+
+from app.engine import unit_funcs
 
 class WeaponTypes(ItemComponent):
     nid = 'weapon_types'
