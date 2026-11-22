@@ -1,0 +1,657 @@
+diff --git a/app/engine/base.py b/app/engine/base.py
+index f2c15ed2a..04049dcc6 100644
+--- a/app/engine/base.py
++++ b/app/engine/base.py
+@@ -910,19 +910,35 @@ class BaseCodexChildState(State):
+ class LoreDisplay():
+     def __init__(self):
+         self.lore = None
+-        self.topleft = (84, 4)
++        self.topleft = (84, 0)
+         self.width = WINWIDTH - 84
+-        self.bg_surf = base_surf.create_base_surf(self.width, WINHEIGHT - 8, 'menu_bg_brown')
+-        shimmer = SPRITES.get('menu_shimmer3')
+-        self.bg_surf.blit(shimmer, (
+-            self.bg_surf.get_width() - shimmer.get_width() - 1, self.bg_surf.get_height() - shimmer.get_height() - 5))
+-        self.bg_surf = image_mods.make_translucent(self.bg_surf, .1)
++
++        self.book_rect = (23, 8, self.width, WINHEIGHT)
++        self.bg_surf = engine.subsurface(SPRITES.get('book_flip_0'), self.book_rect)
++        self.book_flip_sprite = None
++
++        self.transition = None  # 'RIGHT' or 'LEFT'
++        self.transition_counter = 0
+ 
+         self.left_arrow = gui.ScrollArrow('left', (self.topleft[0] + 4, 8))
+-        self.right_arrow = gui.ScrollArrow('right', (self.topleft[0] + self.width - 11, 8), 0.5)
++        self.right_arrow = gui.ScrollArrow('right', (self.topleft[0] + 132, 8), 0.5)
+ 
+         self.dialogs = []
+ 
++    def update(self):
++        if self.transition:
++            self.transition_counter += 1
++            if self.transition_counter % 4 == 0:
++                counter = self.transition_counter // 4
++                if book_flip_sprite := SPRITES.get('book_flip_%d' % counter, None):
++                    if self.transition == 'RIGHT':
++                        book_flip_sprite = engine.flip_horiz(book_flip_sprite)
++                    self.book_flip_sprite = engine.subsurface(book_flip_sprite, self.book_rect)
++                else:
++                    self.book_flip_sprite = None
++                    self.transition = None
++                    self.transition_counter = 0
++
+     def update_entry(self, lore_nid):
+         from app.engine import dialog
+ 
+@@ -936,7 +952,7 @@ class LoreDisplay():
+         for line in text:
+             dlg = dialog.Dialog(line, font_type="text", font_color="white", num_lines=8, draw_cursor=False, speed=0)
+             dlg.position = self.topleft[0], self.topleft[1] + 12
+-            dlg.text_width = WINWIDTH - 100
++            dlg.text_width = 132
+             dlg.reformat()
+             self.dialogs.append(dlg)
+         self.num_pages = len(text)
+@@ -945,10 +961,12 @@ class LoreDisplay():
+         if self.page_num < self.num_pages - 1:
+             self.page_num += 1
+             self.right_arrow.pulse()
++            self.transition = 'RIGHT'
+             return True
+         elif first_push:
+             self.page_num = (self.page_num + 1) % self.num_pages
+             self.right_arrow.pulse()
++            self.transition = 'RIGHT'
+             return True
+         return False
+ 
+@@ -956,10 +974,12 @@ class LoreDisplay():
+         if self.page_num > 0:
+             self.page_num -= 1
+             self.left_arrow.pulse()
++            self.transition = 'LEFT'
+             return True
+         elif first_push:
+             self.page_num = (self.page_num - 1) % self.num_pages
+             self.left_arrow.pulse()
++            self.transition = 'LEFT'
+             return True
+         return False
+ 
+@@ -969,6 +989,12 @@ class LoreDisplay():
+         bottomright_pad = (1, 5)
+         if self.lore:
+             image = self.bg_surf.copy()
++            if self.transition:
++                if self.book_flip_sprite:
++                    image.blit(self.book_flip_sprite, (0, 0))
++                surf.blit(image, self.topleft)
++                return
++
+             width, height = utils.tuple_sub(image.get_size(), topleft_pad, bottomright_pad)
+             unit = None
+             if game.get_unit(self.lore.nid):
+@@ -980,11 +1006,11 @@ class LoreDisplay():
+                 portrait = image_mods.make_translucent(portrait.convert_alpha(), 0.5)
+                 image.blit(portrait, (utils.tuple_sub(image.get_size(), portrait.get_size(), bottomright_pad)))
+ 
+-            render_text(image, ['text'], [self.lore.title], ['blue'], (self.width // 2, 4), HAlignment.CENTER)
++            render_text(image, ['text'], [self.lore.title], ['blue'], (72, 4), HAlignment.CENTER)
+ 
+             if self.num_pages > 1:
+                 text = '%d / %d' % (self.page_num + 1, self.num_pages)
+-                render_text(image, ['text'], [text], ['yellow'], (self.width - 8, WINHEIGHT - 12 - 16), HAlignment.RIGHT)
++                render_text(image, ['text'], [text], ['yellow'], (self.width - 16, WINHEIGHT - 12 - 8), HAlignment.RIGHT)
+ 
+             surf.blit(image, self.topleft)
+ 
+@@ -1051,6 +1077,9 @@ class BaseLibraryState(State):
+         directions = self.fluid.get_directions()
+ 
+         self.menu.handle_mouse()
++        if self.display.transition:
++            return
++
+         if not self.display.lore or self.display.lore.nid != self.menu.get_current().nid:
+             self.display.update_entry(self.menu.get_current().nid)
+ 
+@@ -1064,10 +1093,10 @@ class BaseLibraryState(State):
+             self.display.update_entry(self.menu.get_current().nid)
+         elif 'RIGHT' in directions:
+             if self.display.page_right():
+-                get_sound_thread().play_sfx('Status_Page_Change')
++                get_sound_thread().play_sfx('Status_Character')
+         elif 'LEFT' in directions:
+             if self.display.page_left():
+-                get_sound_thread().play_sfx('Status_Page_Change')
++                get_sound_thread().play_sfx('Status_Character')
+ 
+         if event == 'BACK':
+             get_sound_thread().play_sfx('Select 4')
+@@ -1109,6 +1138,8 @@ class BaseLibraryState(State):
+     def update(self):
+         if self.menu:
+             self.menu.update()
++        if self.display:
++            self.display.update()
+ 
+     def draw(self, surf):
+         if self.bg:
+diff --git a/app/engine/credit_state.py b/app/engine/credit_state.py
+index 74f417cdb..7190bcd6b 100644
+--- a/app/engine/credit_state.py
++++ b/app/engine/credit_state.py
+@@ -108,6 +108,8 @@ class CreditState(State):
+         directions = self.fluid.get_directions()
+ 
+         self.menu.handle_mouse()
++        if self.display.transition:
++            return
+         if not self.display.current or self.display.current != self.menu.get_current_index():
+             self.display.update_entry(self.menu.get_current_index())
+ 
+@@ -140,6 +142,8 @@ class CreditState(State):
+     def update(self):
+         if self.menu:
+             self.menu.update()
++        if self.display:
++            self.display.update()
+ 
+     def draw(self, surf):
+         if game.game_vars.get('_base_transparent'):
+@@ -167,18 +171,19 @@ class CreditDisplay():
+         self.page_num = 0
+         self.font = 'text'
+ 
+-        self.topleft = (84, 4)
+-        self.width = WINWIDTH - 84
+-        self.height = WINHEIGHT - 8
++        self.topleft = (84, 0)
++        self.width = 132
++        self.height = WINHEIGHT
++
++        self.book_rect = (23, 8, WINWIDTH - 84, self.height)
++        self.bg_surf = engine.subsurface(SPRITES.get('book_flip_0'), self.book_rect)
++        self.book_flip_sprite = None
+ 
+-        self.bg_surf = base_surf.create_base_surf(self.width, self.height, 'menu_bg_brown')
+-        shimmer = SPRITES.get('menu_shimmer3')
+-        self.bg_surf.blit(shimmer, (
+-            self.bg_surf.get_width() - shimmer.get_width() - 1, self.bg_surf.get_height() - shimmer.get_height() - 5))
+-        self.bg_surf = image_mods.make_translucent(self.bg_surf, .1)
++        self.transition = None  # 'RIGHT' or 'LEFT'
++        self.transition_counter = 0
+ 
+         self.left_arrow = gui.ScrollArrow('left', (self.topleft[0] + 4, 8))
+-        self.right_arrow = gui.ScrollArrow('right', (self.topleft[0] + self.width - 17, 8), 0.5)
++        self.right_arrow = gui.ScrollArrow('right', (self.topleft[0] + self.width, 8), 0.5)
+ 
+         self.clear_display()
+ 
+@@ -188,6 +193,20 @@ class CreditDisplay():
+         self.portrait = None
+         self.static_surf = None
+ 
++    def update(self):
++        if self.transition:
++            self.transition_counter += 1
++            if self.transition_counter % 4 == 0:
++                counter = self.transition_counter // 4
++                if book_flip_sprite := SPRITES.get('book_flip_%d' % counter, None):
++                    if self.transition == 'RIGHT':
++                        book_flip_sprite = engine.flip_horiz(book_flip_sprite)
++                    self.book_flip_sprite = engine.subsurface(book_flip_sprite, self.book_rect)
++                else:
++                    self.book_flip_sprite = None
++                    self.transition = None
++                    self.transition_counter = 0
++
+     def update_entry(self, idx):
+         if self.current == idx:
+             return  # No need to update
+@@ -237,7 +256,7 @@ class CreditDisplay():
+                         for line in text:
+                             dlg = dialog.Dialog(line, font_type=self.font, font_color="white", num_lines=8, draw_cursor=False)
+                             dlg.position = self.topleft[0], self.topleft[1] + 12
+-                            dlg.text_width = WINWIDTH - 100
++                            dlg.text_width = self.width
+                             dlg.reformat()
+                             self.contents.append(dlg)
+                             self.pages.append([credit])
+@@ -274,11 +293,15 @@ class CreditDisplay():
+             self.page_num += 1
+             self.right_arrow.pulse()
+             self.clear_display()
++            if self.pages[0][0].credit_type != ResourceType.PANORAMAS:
++                self.transition = 'RIGHT'
+             return True
+         elif first_push:
+             self.page_num = (self.page_num + 1) % self.num_pages
+             self.right_arrow.pulse()
+             self.clear_display()
++            if self.pages[0][0].credit_type != ResourceType.PANORAMAS:
++                self.transition = 'RIGHT'
+             return True
+         return False
+ 
+@@ -289,11 +312,15 @@ class CreditDisplay():
+             self.page_num -= 1
+             self.left_arrow.pulse()
+             self.clear_display()
++            if self.pages[0][0].credit_type != ResourceType.PANORAMAS:
++                self.transition = 'LEFT'
+             return True
+         elif first_push:
+             self.page_num = (self.page_num - 1) % self.num_pages
+             self.left_arrow.pulse()
+             self.clear_display()
++            if self.pages[0][0].credit_type != ResourceType.PANORAMAS:
++                self.transition = 'LEFT'
+             return True
+         return False
+ 
+@@ -313,18 +340,31 @@ class CreditDisplay():
+             lines = 0
+             if credit.contrib and credit.contrib[0]:
+                 c = credit.contrib[0]
+-                lines = text_funcs.line_wrap(self.font, "%s by %s" % (c[1], c[0]), self.width - 16)
+-            temp_menu = base_surf.create_base_surf(self.width, 28 + len(lines) * FONT[self.font].height, 'menu_bg_clear')
+-            surf.blit(temp_menu, self.topleft)
+-        else:
+-            surf.blit(self.bg_surf, self.topleft)
++                lines = text_funcs.line_wrap(self.font, "%s by %s" % (c[1], c[0]), WINWIDTH - 84)
++            temp_menu = base_surf.create_base_surf(WINWIDTH - 84, 28 + len(lines) * FONT[self.font].height, 'menu_bg_clear')
++            surf.blit(temp_menu, (self.topleft[0], 4))
++
++            if not self.static_surf:
++                self.static_surf = self.create_static_surf(lst)
++            surf.blit(self.static_surf, (0, 0))
++
++            if self.num_pages > 1:
++                self.left_arrow.draw(surf)
++                self.right_arrow.draw(surf)
++            return
++
++        surf.blit(self.bg_surf, self.topleft)
++        if self.transition:
++            if self.book_flip_sprite:
++                surf.blit(self.book_flip_sprite, self.topleft)
++            return
+ 
+         if credit.credit_type == ResourceType.PORTRAITS and not self.portrait:
+             portrait = RESOURCES.portraits.get(credit.sub_nid)
+             self.portrait = InfoMenuPortrait(portrait, DB.constants.value('info_menu_blink')) if portrait else None
+ 
+         if self.portrait:
+-            width, height = (self.width - 8, WINHEIGHT - 12)
++            width, height = (self.width, WINHEIGHT)
+             self.portrait.update()
+             im = self.portrait.create_image()
+             prefab = self.portrait.portrait
+@@ -381,12 +421,12 @@ class CreditDisplay():
+         surf = engine.create_surface((WINWIDTH, WINHEIGHT), transparent=True)
+ 
+         header = credit.header()
+-        render_text(surf, ['text'], [header], ['blue'], utils.tuple_add((self.width // 2, 4), self.topleft), HAlignment.CENTER)
++        render_text(surf, ['text'], [header], ['blue'], utils.tuple_add((72, 4), self.topleft), HAlignment.CENTER)
+ 
+         if credit.credit_type == ResourceType.ICONS80:
+             im = self.get_icon_by_credit(credit)
+             if im:
+-                surf.blit(im, utils.tuple_add((self.width - 8 - 80, WINHEIGHT - 12 - 72), self.topleft))
++                surf.blit(im, utils.tuple_add((self.width - 8 - 80, WINHEIGHT - 72), self.topleft))
+ 
+         lines = []
+         if credit.credit_type in (ResourceType.ICONS16, ResourceType.ICONS32, ResourceType.MAP_ICONS):
+@@ -408,12 +448,13 @@ class CreditDisplay():
+ 
+         elif credit.credit_type in (ResourceType.ICONS80, ResourceType.PORTRAITS, ResourceType.PANORAMAS) and \
+                 credit.contrib and credit.contrib[0]:
++            length_limit = WINWIDTH - 84 if credit.credit_type == ResourceType.PANORAMAS else self.width - 16
+             c = credit.contrib[0]
+-            lines = text_funcs.line_wrap(self.font, c[1], self.width - 16)
++            lines = text_funcs.line_wrap(self.font, c[1], length_limit)
+             st = lines.pop()
+             highlight_lines = range(len(lines))
+ 
+-            lines += text_funcs.line_wrap(self.font, "<orange>%s</> by %s" % (st, c[0]), self.width - 16)
++            lines += text_funcs.line_wrap(self.font, "<orange>%s</> by %s" % (st, c[0]), length_limit)
+             for idx, line in enumerate(lines):
+                 render_text(surf, [self.font], [line], ['orange' if idx in highlight_lines else None], 
+                             utils.tuple_add((8, 20 + idx * FONT[self.font].height), self.topleft))
+@@ -434,7 +475,7 @@ class CreditDisplay():
+ 
+         if self.num_pages > 1:
+             text = '%d / %d' % (self.page_num + 1, self.num_pages)
+-            render_text(surf, ['text'], [text], ['yellow'], utils.tuple_add((self.width - 8, WINHEIGHT - 12 - 16), self.topleft), HAlignment.RIGHT)
++            render_text(surf, ['text'], [text], ['yellow'], utils.tuple_add((self.width + 8, WINHEIGHT - 12 - 8), self.topleft), HAlignment.RIGHT)
+ 
+         return surf
+ 
+diff --git a/app/engine/info_menu/info_menu_state.py b/app/engine/info_menu/info_menu_state.py
+index d02055670..dbff5efa9 100644
+--- a/app/engine/info_menu/info_menu_state.py
++++ b/app/engine/info_menu/info_menu_state.py
+@@ -119,6 +119,10 @@ class InfoMenuState(State):
+         self.transition_counter = 0
+         self.transparency = 0
+ 
++        self.book_rect = (23, 14, 144, WINHEIGHT)
++        self.book_bg = engine.subsurface(SPRITES.get('book_flip_0'), self.book_rect)
++        self.book_flip_sprite = None
++
+         game.state.change('transition_in')
+         return 'repeat'
+ 
+@@ -247,7 +251,7 @@ class InfoMenuState(State):
+ 
+     def move_left(self):
+         if len(info_states) > 1:
+-            get_sound_thread().play_sfx('Status_Page_Change')
++            get_sound_thread().play_sfx('Status_Character')
+             index = info_states.index(self.state)
+             new_index = (index - 1) % len(info_states)
+             self.next_state = info_states[new_index]
+@@ -261,7 +265,7 @@ class InfoMenuState(State):
+ 
+     def move_right(self):
+         if len(info_states) > 1:
+-            get_sound_thread().play_sfx('Status_Page_Change')
++            get_sound_thread().play_sfx('Status_Character')
+             index = info_states.index(self.state)
+             new_index = (index + 1) % len(info_states)
+             self.next_state = info_states[new_index]
+@@ -369,6 +373,21 @@ class InfoMenuState(State):
+         # Left and Right
+         elif self.next_state is not None:
+             self.transition_counter += 1
++            if self.transition_counter % 4 == 0:
++                counter = self.transition_counter // 4
++                if book_flip_sprite := SPRITES.get('book_flip_%d' % counter, None):
++                    if self.transition == 'RIGHT':
++                        book_flip_sprite = engine.flip_horiz(book_flip_sprite)
++                    self.book_flip_sprite = engine.subsurface(book_flip_sprite, self.book_rect)
++                else:
++                    self.book_flip_sprite = None
++                    self.state = self.next_state
++                    self.next_state = None
++                    self.info_graph.set_current_state(self.state)
++                    self.transition = None
++                    self.transition_counter = 0
++
++            '''
+             # As on the GBA (sPageSlideOffsetLut), the page slides out 4, 7, 10, 12 and 14 tiles,
+             # and the next one in from 13, 9, 7, 5, 3, 2 and 1 tiles away, a step a frame
+             in_offsets = (104, 72, 56, 40, 24, 16, 8)
+@@ -393,6 +412,7 @@ class InfoMenuState(State):
+                     self.info_graph.set_current_state(self.state)
+                     self.transition_counter = 1
+                     self.scroll_offset_x = in_offsets[0] if self.transition == 'RIGHT' else -in_offsets[0]
++            '''
+ 
+     def draw(self, surf):
+         if self.bg:
+@@ -401,6 +421,8 @@ class InfoMenuState(State):
+             # info menu shouldn't be transparent
+             surf.blit(SPRITES.get('bg_black'), (0, 0))
+ 
++        surf.blit(self.book_bg, (96, 0))
++
+         # Image flashy thing at the top of the InfoMenu
+         num_frames = 8
+         # 8 frames long, 8 different frames
+@@ -410,7 +432,11 @@ class InfoMenuState(State):
+         surf.blit(im, (98, 0), None, engine.BLEND_RGB_ADD)
+ 
+         self.draw_portrait(surf)
+-        self.draw_slide(surf)
++
++        if self.book_flip_sprite:
++            surf.blit(self.book_flip_sprite, (96, 0))
++        else:
++            self.draw_slide(surf)
+ 
+         if self.info_graph.current_bb or self.info_graph.last_bb:  # The last one, as it shrinks away
+             self.info_graph.draw(surf)
+diff --git a/sprites/info_menu/book_flip/book_flip_0.png b/sprites/info_menu/book_flip/book_flip_0.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a03070f9137117d1a4e228b7cda6f98e8192276
+GIT binary patch
+literal 1171
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2IeOq%$Ub>R|cp?!_&nvq$2L^9qVk7K$&9?uWH@6(b?N%
+z7S|=PVZ#^YBTgImGS+Sr;}YBEn5|fPz{$Qz-eH31A~UXA9#+!&y@l#>qL26N+%a?J
+znRA~_p4+obQ?&e3R?d;m0<;heWJ=mk-RgR3%q^XoqHt{f{%J3lPvu{~{8q8I`nkIK
+zI{V|3|DA}LDKRNJKW@vVb=R0Q`wnk0olvTF(Z(k7-%a`G<Op|#_SL-}+k`v{W!Bwg
+zDUxEc%<**(Qiv{l`Y>r`+Wp<z<xhv?KmE7aC^!G*x1~m@%l+i_FTbg-d7OFn`P)RH
+z6LJzkU%n+Rcj&u*?X-!MZT+WJKJ_s>YVwNb+Slh4-#s^hX{Y#Rxyv(op0v&u&waso
+z!&{-g^6S6LFYcUN{PdN2qs+D}`Oy0NyKb1vo_O`JV)ZHuBc5DWZ<+Ror<#vm`+YG=
+zVRif0eO*kKS1JAcbb5Qy)iu}b9httgIxw*?aSCv#I4DeDXmq%g{qJbI8Yh&8A_e4l
+zrk53;Q!epTU}S1!;b0L`5b$VlP{^EeSmlK=k^qV<I%i3+^<1rYR|<Ejfb2uqV6tvy
+z@X@(pewSg!qH9E0h(o68WagtSj;L<Kp%mz96dB76&(6zh3zs;f3Ztl@F2{1ivFz8W
+zO?j|@M+5{)sNmr2{qpYZaU;iKvcn2J01%$DGL4JY58gYsj?Y&J6uSr+RL+BdNa?LL
+zX^F{yerE4X+JCpYWUJ5H-Nm_Eeb~dp_s`#bJ=|Sd`e{?Gd3{P=$?LP-ZqjNK9Q4nI
+zD4h0S-c|E?rP<4}vg&+o`MB`@>VLP?f%)uR*8MlvZQpF4`>y*Xr^?<i@#UU8|Eup`
+zbq(%l%T{BG6g-*uOY}tMqKI^%Q|~9Iel}$-nlY<S8J2}FFfYEypFC@2$m4~}-hu=@
+MUHx3vIVCg!029D{UjP6A
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_1.png b/sprites/info_menu/book_flip/book_flip_1.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..a6190f478158695530f7707a14d804c3ce8d92c0
+GIT binary patch
+literal 1279
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2IeOq%$Ub>R|cqNil>WXNJZS+yS91K?hI`Ym+D+Dl~U%I
+zqSVHHm~E2wl1bePu6~LN9_JKZ@^nsYUcoWvoMlt@l(dP*PVj0R2(viEwIH=_+rKhP
+zXFGm{g7&2>`(z5+jb(w>fj~&|C3`0CG<EmScVFJzBJWoH`#8Va<ab--Hzl%6>NT{s
+zw7EOC?ECM;uiw7)zbl>Gx~}@V{ZUidvb*OBukU@|Uhb!md1<vc`{$E>=6|1Eoc`B%
+zwyVu+g$X9lmHM7m1vBsT>U^d&v-#|_A2S?+_U`|0Vewkuev@zG9xlPX(M+CO>;8XT
+z{@I}J_m_u1D?}Ur?AiPL`0jt9`z0HfXxab&@b}Nl#rk$Ts&ytDp1rp+`sn*lub&?e
+zHO*XJ&$4ZX`K+rfLJ_O&|5w%8HLsoMz{JAjdDZUgPvy7Tn~$sazy2%Dt>U0CfuRv3
+z!zsW4;+UL%^z7T!8ur}+9tm%=YBvjeG&m?QGBvVrum~v#fH;j?HKaqY_<;nML~XN5
+zz6+L^^(4Ek#}QQ}NSj;u@51%s2)(N+FYZUO?!b$vh)2O-n-AQ&vM+Zok{pV=K%B)|
+zyF0f#VcG$A8k##-{B=1DQSKJJ&8qs-k3{=b^YK{#2?c{$)AprBaHtsU5-a<p33ED%
+z*-(yztL28(rm&#Ha4*m}o^?7x`EPf$LY;B-RHaEPrVDu19W|W*7YEue)+vt9RA5vY
+ztSCwdUya{!*~fK7z{VKN_+)xG?EDcuO!Wx`y6YNsFvVAW{WbspFYO3^q?iZ!n(gAR
+zw4HFLf)Y&Tw`aNatcL{=31!l%n;RC@u9e#!0FGE-xLnflu9cVt_BhX?oREv3cxO2&
+zG+Kw+{nD^sdwipS$Ad7vriz6vg~E@30bihe+W4q1=c806&X|*G=S74YSr$Fj$a5CZ
+z7xtL7&1Uh#GQFf7f2{8w)6f(4xKT7cz2mmbk<)5_l|x=`kFT3k|NYJCO#7IV+`nD{
+zv!tAl+T_c1C(=1o&Q^SVlwf!BW!SMG7307?mW?UOe|~@Zux9_AtZs>W(MLYi+CP~F
+z%+gzY59$QI5etpkGvoeO|3Y_`Nox(@xxCn=z?Ma*>E_9cHRV;`PD;CMf4KSJFHV)1
+k%cX}jn;<1dfo|+~``lxzKG_tv)q#XOUHx3vIVCg!0KXQ-l>h($
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_2.png b/sprites/info_menu/book_flip/book_flip_2.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..338d3d403fcf3c053eb86929bb5f0be30846bb15
+GIT binary patch
+literal 1429
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2B8uVX1tdsU%|k@s^#h87*Y}U_O4-`NI1js#L3({oHI8}
+zDOvV`*U8aY_~avz4uxMOg0XxK4l;_WL0wBc9rGSAb$M)ak?QUfwy1g?xhMO5{oZ47
+z@2fxW^LMiLW;LF5|J<ILm77@)B$c=Mzqqygy1!rBQOo`Rf4+b6dHeSI+u>Fzi!aap
+z|L<3-(BZ|0AD{gGe&7GHPnDwk_x(zb5IS$TIWhCr>F53G8*lHfFaK0~?Rv|5wY`5I
+zC%is<{QTrp!Q9EcZj(=GemwZwpZjn`j#c0Dsmgv6bNYGRj4xR{RNBf~G_krr?#6$u
+zbmqXlMrjtZ`Z1y0jdQgAZ)f+ve?we5WpTh-qkS{{7V2LPQb?Z~F-`lq-|^QU&VJww
+zS<v$L`TV*WGN$&o>vw#b!1VfIc$b#$ZmYdrVf_likEhN~TpB#J=*pJen{6Zi-Leo%
+z=6+JyRB62?WtBm-RpniWKHI+Vhu;>x-uP(6p)XT*-HFhh@K)mY#5LU}2TrZ4+8z3u
+zWl~__mmP6WUoM@;q2i!0;egkvC(_q<ZeHNZ#3=w4VQ6$<(teryXQO~egM-4#pniAl
+zEA9%Cyyl(j{dXQ+?#{%yX3cha#YPqm79j<&8b+qZ6p@&Nar0lQh}y18Zd_vZu5pPN
+z%shuHk5zVVMp6sa_#kMn-Aa`S4p)8$`@+;7aJu~c!WWz1Ne-86g6D43WAY3wE8o_x
+zdc&r1iPp2GC2C-W0$=U+X-_!7y7xS@rRoHev!XfIJQaYB02#dFz>mk8NN#JiO#5i5
+zJOSh>7ADS`hk}PInLJJ3%=l{Xufhwa3F3`L{TPke>M*5{z%V&|S#Hg22PWamnddAZ
+z#uW3!&JhF!4b(=1$rTC{Ois44<TZos0BZcuy0E(v=BI|}8i>>2fz@(url*atN5UcB
+zN8+5INPxNy5&l4@LhXO~;zLEmBda~{N-Y~%Y|<p)QN#lD2H(AUsc8%NV2XjpI32&E
+zvTqK|9VkYZtUAMbvIt2nC_vy=28phZ-BBC&a~9Y^Ay0uR{jgBZJgg=`jCE>1^;+!P
+zyZf^HCL%csYGTOoB|EP;DP&%|`0(Qfme-0CE*P$lj_`wpnbi}+!&kw&LQbx=y8;hO
+zco3l^E)d5m_+IDPETmMlBx;#W@?~U!tm(bZa<X##-fI@E(bs<yHP_*iiT=L$cYpXj
+zBI7sL18vWY;%r!aBDninGe=y%!y%83hi7*i*EpHR+11w=>G-WNO1l;<bL!%w=H>Zs
+z_GhQD1}{zj&F>FNf%((jH%)iASN-LXU3K@GoK>dMC*zncWy4Fh?2rtzx;lGak$(3R
+z3Fen3RiD??%qoafIWBPG=IRTFBG{!HpY5ssoAOTSTnP6>9l<&Otb5h3oo8F*sp}pj
+zaXZo3kV|#O(~U>|%71U$zp`0k+u38uAzm8hwIZ5bj}x7Zs>~&QKQc2gOj^74KVxs&
+WS1H|!c@4m#l)=;0&t;ucLK6VcEhb|C
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_3.png b/sprites/info_menu/book_flip/book_flip_3.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..e75b96c64f22fddd0352d1ca41e487f4b8b11d7c
+GIT binary patch
+literal 1584
+zcmZ9MdpOg39LIlV*e|(_ZrVBfZB`t&M6D?vn_F8G9>?k8ag4B3LYdleiD}J|%hps%
+zE=S2p2N8!oZehg~)72%zBSp?!qT-p*`E5?m({uj#{l4Gt=lOj<pZELq{rtYE-ky7P
+z))=n=06>REb@c%NH7Yz8p)}z)XEr7u9@L_J_BsRQQp^OrKpv&+rvN}DUwbJ?173qs
+z)WgvLfMzKlwIL>!4FDRCXs#4rcEHpi<)YESjm@+97<|Ym{xEaIKvoALy>Q9-IJTz7
+ztPx(+(PPrt8hT&i-tdqsv<^#KtgEkM#3al#4(o*&Q<%K#itd9mjpk>8&ia7|7q-Tq
+zTUZMEI;ZtuW&X*^t7H89rupcWvrPtf4j73`ww%H&ed+F9{%df$BW>ZF`|hzcuXWOl
+zk=)xHhm@bH^qM3^3&X>Sju_7vdYOUbl6OtlhV1I{>&ALzn<Vx(`!fsXBXL)1@8z#c
+z9bL~$t@V}lUma!@`P$ml=0oGx%;h1;ggoJkU>-@AS91ER@FI#Jljze5OVcU~SiC3l
+zpt*YHc<klSWQ<P13wvx9eGcOxDDuT;ZVJ^Vwkxb2jp_Dc7)^?(-q)I4_B;k^fzdRz
+zvNSro5_vA<ri=#)nXiatjw{RKOw(~ckU+5U;NQXtN3k_q1Vug{)n@5nPym8vE)HdS
+zwUML=Lqt}MsQ^&p6w!8iFh)PIMJps*$1zAC5X5v~kZ1@JRB*&k<U_>b<9Il@Q-VPX
+zcf?*V^5B2grzRzlTireQ3Xni1L&rR)He-lkbNW;fPODjt7etw)oXV|l6vQLZME#Rb
+zMGaCnXr%4i#^;wyv+tzH`BJAI7YGN+`3jUW%Lp(0=}R|A4S@hHKC-J~RjEhdBA*SY
+z)MkT%TqOFy+X=@QLuK*j>EYQW#qEnALDpQU{-y`}5l!`}5Yye^&C%or*r=g@@qJAW
+zR|kxXfMXw$WJDCfXpHT(2iEjvZnqN$i9!)dC58{>Ta^^JS4dER6Nj5T8CdHE1*xB@
+zkV67*2`e_;`rf0;9}%FwKK1TVe6W>jW)@ht@;-^ZS%oRQ{7>=A9y;vX``Vtc*EoT1
+zmup)N5*^{%DK}B&w#bW1!@)L`)Ydr+m7ZKpBC+C~Tn*}w)DN3-xX!X8eLr%z+WjpN
+z1?1Mp{sFyo6%UO=iQ!q~R*h1pd5S8a6!VLCy5fh)I*?!#c)oZ)>~Xtej~5hFIH6mk
+zUqgpR_F<g{XBf|nRYqaHO0e3wacPAaH<T#0W=`o-%{tFp!h)kT`1U7mkP%2EdQFvP
+zzb=PsA!>+N4ZwW><59vg3el=xwNHBSX?^R6b&gAM`@HJxl(}I|B(ZGq*1*~URbO!t
+zFiP4txv+JgGOMrAmV5dVRPCcIR{r*PuX=c>e&=T<N2~BS=d1VYakz&5&I_yF;k1V&
+zzwTIuhrl|D%K#FcN&1@-tX01X@lf+(Fhg|=|EW}Vl82N$zxTV!&dt$~0hM@AJl6hU
+zdtF+wlS-{fV5+G0QhjDuym?0t_6tFET3~zJMv&mq7av3rM78?cxK-;RK-2go)`LX1
+zNTkrnVPAUs|0<T`xD1xkpb=CzXYzY&+zYalLD<fP$=n4OsAMRo<^K7>T`*1A)Nm_v
+zs3~^drlFDPXVGZQ4mZz>V<@krs+W+V@_(R-?Qk9LDtT&#Fn2@xuCTCdvheZkpKpi<
+zN?V>GpDUK86$`;m^eZ{jZGBS5e=K9MnTqNTBxu)0@-+3!I?h<?G0C$ue4DjlW;vcE
+zMbhl{d7eE}u?a<(Sex|+`4WdLl-ht13Zp!nblY%z)NdJNVfTR(iNwHb@c;B0FVyAO
+zy|YdJbanFhwp1DGNcD-X%aN$N+Z}e<?iM*_4B8iBRx->^r$_4M*d)B4_J;<i5CBkm
+bto935ql;bZ>G385zU2X$o2P5Jb71nnXu^>0
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_4.png b/sprites/info_menu/book_flip/book_flip_4.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..59799f70c138df834227d383421a845df1f0014a
+GIT binary patch
+literal 1330
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2B8uVX1tdsUjbBe+|$J|q$2L^UHiN%5e&yaCh`kj3~-pK
+z<i22OWad##flEbfF5CYua+PW1a`j@=t!~!Lm@uhH?U7KkPUR2dS@D0;kIC8p{yZ_@
+zjb7{Lr$6_m|GvkS_T=^P>9c=rxY(?|KIZ?OldOl9)K-1Y`TXJH-(PQbuuM|Z6Hr@z
+zTH}KNlc%sahq`%~Ksl$1Z;Zm6Gb<16P@P~>*k~~8y8gU8y>sVZZN8edV&~CqKuz^m
+z>=Og7CY@ei*doNC(!A<W#NXBa3pJQdCcNW%yfT0NLf*y{0k_^Wjh<P2+jdLU7S~40
+zrv^(nzWX<?fBycj-w)*XD7;+DmAtaB#q3YNXLjy4T{G4quR@ciC7psQ4hj=wd}rT&
+zy|U=`c{?Uf0S*=Sz*{dqe#(lKcT}6e(CEO#0v267^ORSi>3@r**Vh@wf<@RrS11;%
+zLY16!^s3t<FpC3Zo=#tX`^9MvMi$yPrg$kx&Z+eB0xR1jan<8m_PG~M3Xwd;3rkcd
+ze7RPZSE!X}B<>XsHW8>7V&Tc8HTLzNXDH6)P}v(Hn8wL6$?;~j$4M3;1p$u+2L(o^
+z#uUSEYZGQGKh*<koO|=p;UKWx2nPcV<2feh?4=Gea}$T%cQ1KVOF(`FDLSN9_zYs^
+z#-5@~C6IEX>Z{3ZzwK_Y`XX7$!U5)3?cBL<ZGXZ)Oc{vFpvq7<Y3ILZyzmCO8=EYO
+zQXnUCNqhgh>+TacLCyoYrepT&+rKzYsZQW=Q_-9Yijk8EYea&rK&DOd>*0zN0<$7_
+z?}@tZegUii>N%9)z{@d`m|wfJgvm2~pEtIk1UVymdid+BM}J1vvfbrW*?WWgBrrL`
+zqYPx>-pCb+@4(^0_H^!qDL$wkw)B|2)=n%-V=633LG%_GoKG=Ei+_+|i$Cm8R22e6
+zw`G^+yVgIi&v#$_^?Ca*o?XHqLCM}q4=?2j3<vlAQvdSl>*LeDwKuX_EWX7&eR{R3
+zw6HF0{@*R{zgK*CGIc+DT{6qbi&MT_;@bXuiy}BgwUo`hz%dO9%fQOr7R5>vdd}IX
+zECr^o1IHrRKK?p-`RqR4ThYmPyO#GpntJ#CLAS!PoeC0XmYbiivq{~Yea7M6-}lwm
+zE%)v?nq~mZXT6C={GOnM8anZdpBp&A@04`gTKn6-wA=QW%@RuwzC@OjD^?}sK9@i1
+zY*fkwWM7Oi)vvtH#OKrMP-GOUvRY8pXR1R{(AADjw-)TZyX5V**_whLYKyy`?B<UT
+x`~T<r{s1G+XN?-S*55yJ^SGAT-?d@)8Ks<Gz4b5PU;>tN44$rjF6*2UngBG1?K}Vg
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_5.png b/sprites/info_menu/book_flip/book_flip_5.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..0438b7d238cfa112e00945a1575e95a4de7a3b86
+GIT binary patch
+literal 1474
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2B8uVX1tdsU%|k@8t&=h7*Y}U_O5N7Osd3zkG$<0GJ+ah
+z9v^b|kd9g<!|2*%?DF!(&mg}>ot>V}jOI5Em2|qyIw7lWAZ4Phd+dDGUgOW_KJWQc
+z7qsQ^k!jsN|0?&F?O9kae{bI|S^Y-$3Zs3OX6_EG`SoY({_Kh+{>Q?tl8$hE7C6!O
+z=iBG&+rJ<ExO;w`{Q8FDK#`hnKbJqgy8my*&($wY=Nzz~^Qi8}x7D}1KX0yI_n!O7
+z)2n60FU~7p({WVruGZ*l4rZ1V^!w+3=S?ebcHiM_k$vCa+vRP$Zm!N=^yAk-!+7(W
+zcbli@-|;Uw${TydaPjejdPU8aZWAW{eXl&_%ON%2z}*&UTW<T7-|2Yu$3Ol;Ue?~p
+zxh#^B`}R*%o4UhMe9IM%S9v{)KAhd_SbV~;aZh%H{N10=e#hVGUXt7udqQAg^5clJ
+z8<tu9k+N?QVVM;9MJVfr`UKZI=B>6OOQ&7VelgX7iG^iTL$H}cS&!Vq5~i6kBFEbg
+zP5(JZB}8!otF6d!P33c%Jz+0<9n{LaUbL;hX&=uq$4_ChRjJ61{{>tLQjKqBXzKeY
+zPvDf5vX$$)7nR+ALA%i>&FjfBo8N*z^c!_tzAVsfWZ~dYad1!&p1JGfqYC~r-U{6>
+z3jYRPI0-b#;%mnFa~~><6XKX|D(=2(zz<VwZLlUj?dAuAz01{^W*)fm*j6r|?X<v&
+za}oy+*02<%^7qQI@?TS)AY1T2YMSB%21by+l)~Wh1C28r)Y6*SuBlGYo|XJ%dp(<x
+zcR=ghIIs)CjgG&#_)A&GTY>xbf6cZ7e^@pNhhG27GVct_CT26&1WBfuQ(heW#UiAj
+z0Q8b|)s{N;(?TZ}$$V^l%9#>)O(U_AX(!WS`xTA~-MjYO>I***#8Sjs?APzRHPMo3
+zXOnYq&cS9ImQ4zmvoo9(x{KI^rm0V8o!NJI6WB!7nQ_k2Oq>D&CtTKOI_WXpoUvWf
+zNtS75%SGiU${;W39NV3-Ko%APj7&^7FU)bTc~f=x6U!#S=kg2Xz@Aht_UUX_wv!8C
+zd<*szP~FT1*~}B33fw{=KzpSN&#=D|JmK{3$LIAQxiTCTxGO(C6@M&xp$Qb*Ag=+f
+zikYcwJz+YM05pz(hJhTYWW&pGOZbEmFs%YLcHvUz(a?ZZYNwLDuym0yRC-gx>D6za
+zJ^GXLha<yP0cb;HPp@o-JBS6e3)Kvrg#QzM{4SS2uAPtxc8S|N>j!sVXI#*j4v9h(
+zO`9errkD4*Pp!NoxkY(GFNgFMa5#dJLeXLVH%!+QC$vT!Z`lU+^_f%6S}!^=-78%@
+zP4E?(Gh$|Lf94nmc7UkGD`rzzK!d`DrRwI%ZOZ=nU_-TE=BnR*F;R{al)!;*+qvkt
+z-)7(Bh44fV6g!y`e9dh;C?p}#oFZiX`iqZ3__Lc6AW>k{m?)CDit8swijorNPOx2*
+zSL}#PKH~kJ#YoWl)`ZiOKTb`t+f!R=-E*O>d{)ey`MvvRYcC3RpKv~IU*Z3Wv!qQn
+z#;SY|<zJ!^)H!?W0>wFxpJvUotABfMVf8hjv)mYEXIULGv0?!hv0$*E<?OS3-qrRh
+S5+zxAAQ4YjKbLh*2~7amNI>xb
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_6.png b/sprites/info_menu/book_flip/book_flip_6.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..51da7c0b730cc77fec277ac8e0230882f38657e9
+GIT binary patch
+literal 1150
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2B8uVX1tdsUjbAj?CIhdQW5v|uC1SFpv<v{2VDiExHL5*
+znsj?RPaCMcYuvz=+_Tz1#mq!Z@1fWYM<w2c#jG<t+nyZz(DbNgPVuwKS=P?U4|neW
+z^S-7GXbBiNyew<;S1YNlD>BdNd-Uqlvg*nW=5KtL|1Xc*`#Yz1LzLM6j$?d@M&SyR
+z|2__W-4?px!u-s266aR(=f7Y1!%i&Y;}X@Yy3gLvzjyEN`{|pH?wI=M{E2(-zyI2w
+z`~LS&zn80`7d#5v_LjjewYbnar}XY`{`e!49*Jz%*v|ap!t}Q*=hy4J-r2b4`{U>9
+z-#xx*zHteMe%pDa&cs@|F1ahKZa93Kd}6<k@|1@!3d(OZ{SvixWYSrA!{JvYug+N(
+zP5}-T2Zad?jSfay$NMrn9hg{{5Mn^i$rp1@E)xZdb$@&!@1;J0!7;S)i$Pd|pPEO5
+zg90N{BMS$Mkb(d*XNB5?zpjt+<K%g(87><;f{anI`P3r@vkPiT_ot9TFEx<m2wQ!Q
+z-8H%5huv5dJJ2}`UN}@e(AuCP4D}DfNEGuSoRdrL`1_v)IveOx_x9a)Z(cvUf!)BC
+zkY1qA-{hOK%;@Gs^Dx3OtGJhZzr;{%2=X*aK!P~|u?oN2pY0M8n$Zk2Lc?x?KL58i
+z-G<7U$R1vB%Av~M%zz!;H36;)ck?)O7T)6g^y*XE4W=1xTO04h+~JF6xLm*kb<oTy
+z$w#mFz)f3WHsM|#hYxZ*gWVM(>yf^xQ4_^lU|cr6V!k>5B-@N8i2oMMa;P#lGcboZ
+z#8J4h1n4YQC@-|pCw-IcHy)T`koGjDmkUJ?-0*=!sW0oLrFI8q_)PG526Atc6{kw~
+zEs%Qy<bY{r7T1z!zS9q%o9Y?>!|E*SCDz9WB7iy_CpVVJ2uXm#C&O&QxkY-XzxHlf
+zaMHmlaI?*S_ALqNKXUGU{dqFhK6Kf2GlO}5A78$@M*G&bTdjB4i*KZ)FnMb0JaJ!R
+zyU6MIt)EObm!%$QPFOQn|3J^S{^oO~)Bfi7@9a{9<y?lVFL&Kvp}4~5*z_-dK!TpG
+KelF{r5}E)=1DWIi
+
+literal 0
+HcmV?d00001
+
+diff --git a/sprites/info_menu/book_flip/book_flip_7.png b/sprites/info_menu/book_flip/book_flip_7.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..be6f7bbaf82efb74767a458ac27446fe996edc75
+GIT binary patch
+literal 1025
+zcmeAS@N?(olHy`uVBq!ia0y~yVDtd8cW|%)$;OYR^MDj%age(c!@6@aFM%AEbVpxD
+z28NCO+<y{Tfqc#akH}&M2B8uVX1tdsU%|k@Jk8U^F{C2y?Opq>&~%9d53|J#Z$xBR
+z9@SA?+p7@S%JN9+h^dM|jH^ISPV6C(X;C*iW=mKWv?QMBKT>h_d*AoUS-<aQK0lLx
+z@AH446;M#%efOrl<b$*G{nx#--?6*?ciH><wKjkLyyo7Y{G<QR#~Sr`>D{_%$9o=c
+z?9^R;g022+`}OndzNxxzaQ(XLt^9$n^Eve{&%MH?)$o7)?8ZGWKfPUETWay=+wb_K
+zlNR3QUI%||to2pcFW{y2GxLAT;@LGmqW^lIHvU<z$($f6tl|(McVfRaAFDwlr;q{%
+znA`n%b1kbuH;~`MvBbN!q0^1!66?_eE@c}Tn;e)}8d*4)I0aZhs!#9mY<LM~IS6<(
+zC`@2T^ijCm|2MfvT66nMu>L1zwzEtcGJz&kXEt=cNn%FU4%1Yr5UarFliCC{_+-#L
+zt#c_b^PvhH6@I>pd3`EZbpnH<0+Jh!u@qH*)jpu2%(T;X!-3WDjhWajK+%NkTmlj;
+zhK+kH?5+3Il<ur&jyTT(^)=j8FsCeL+8L|EXV3}>K}bjtFd9oR5Urz!`^o9>>A$%W
+zbb--_&o%?S3F6Pw^UPV?3>;D74Hob&3h#kQZau>@6nUWeWrxzL6Ic&qJ!bm(@9yzh
+z)(z8Qb3pNn?#3R@Cuh}vRcuz=Fbm>&31N@z67!aw-ah}E=$T|-j4o!*T*VS5CF`*}
+z{(x69^UIkN4rC=Wy*%4?z{Kwo150BH=ke(~dEdR6ul)Dpm+7mI_v?MjKfZCU<aX<N
+zo9}XV@_Ts?Znt>Z`}^?g^zh%4vR(LL`36KkD3Rft&v;*`KxwUrnlnhm)78&qol`;+
+E0H0A#LjV8(
+
+literal 0
+HcmV?d00001
+
